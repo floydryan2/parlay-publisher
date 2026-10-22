@@ -26,6 +26,7 @@ await ctx.route((u) => RELAY.test(u.toString()), async (route) => {
   try {
     const r = await fetch(`${site}/api/ext?u=${encodeURIComponent(req.url())}`, { headers: { "x-admin": code } });
     const body = Buffer.from(await r.arrayBuffer());
+    if (r.status >= 400) console.log(`[relay ${r.status}] ${req.url().slice(0, 90)} :: ${body.toString().slice(0, 220)}`);
     return route.fulfill({ status: r.status, body, headers: { "content-type": r.headers.get("content-type") || "application/json", "access-control-allow-origin": "*" } });
   } catch (e) { return route.abort(); }
 });
