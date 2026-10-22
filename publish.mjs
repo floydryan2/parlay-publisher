@@ -21,6 +21,11 @@ await ctx.addInitScript((c) => {
 const page = await ctx.newPage();
 page.on("dialog", (d) => d.accept());
 page.on("pageerror", (e) => console.log("[page error]", String(e).slice(0, 300)));
+const seenBad = new Set();
+const shortUrl = (u) => u.replace(/([?&](apiKey|key|token)=)[^&]+/gi, "$1***").slice(0, 160);
+page.on("requestfailed", (r) => { const k = "F" + r.url(); if (seenBad.has(k)) return; seenBad.add(k); console.log(`[request failed] ${r.method()} ${shortUrl(r.url())} :: ${r.failure() && r.failure().errorText}`); });
+page.on("response", (r) => { if (r.status() >= 400) { const k = "S" + r.status() + r.url(); if (seenBad.has(k)) return; seenBad.add(k); console.log(`[http ${r.status()}] ${r.request().method()} ${shortUrl(r.url())}`); } });
+page.on("console", (m) => { if (m.type() === "error") console.log("[console error]", m.text().slice(0, 240)); });
 
 console.log(`Starting ${mode} publish at ${new Date().toISOString()}`);
 await page.goto(`${site}/?bot=${mode}`, { waitUntil: "load" });
