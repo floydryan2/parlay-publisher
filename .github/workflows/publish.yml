@@ -1,0 +1,40 @@
+name: Publish rankings
+
+on:
+  schedule:
+    - cron: "0 11 * * *"
+    - cron: "0 15,19,23,3 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "full = research everything, odds = refresh lines only"
+        default: "full"
+        type: choice
+        options: [full, odds]
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npx playwright install --with-deps chromium
+      - name: Pick mode
+        id: m
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then echo "mode=${{ inputs.mode }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.schedule }}" = "0 11 * * *" ]; then echo "mode=full" >> $GITHUB_OUTPUT
+          else echo "mode=odds" >> $GITHUB_OUTPUT; fi
+      - name: Publish
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+          ADMIN_CODE: ${{ secrets.ADMIN_CODE }}
+        run: node publish.mjs ${{ steps.m.outputs.mode }}
