@@ -1,0 +1,6 @@
+{
+  "name": "parlay-plug-publisher",
+  "private": true,
+  "type": "module",
+  "dependencies": { "playwright": "1.49.1" }
+}
