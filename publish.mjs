@@ -18,6 +18,17 @@ await ctx.addInitScript((c) => {
     sessionStorage.setItem("nflsplash", "1");
   } catch {}
 }, code);
+// ESPN and the weather service refuse a GitHub machine, so those requests go through your site's owner-only relay (/api/ext) instead.
+const RELAY = /^https:\/\/(site\.api\.espn\.com|site\.web\.api\.espn\.com|sports\.core\.api\.espn\.com|lm-api-reads\.fantasy\.espn\.com|cdn\.espn\.com|api\.weather\.gov|geocoding-api\.open-meteo\.com|api\.open-meteo\.com)\//;
+await ctx.route((u) => RELAY.test(u.toString()), async (route) => {
+  const req = route.request();
+  if (req.method() === "OPTIONS") return route.fulfill({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*" } });
+  try {
+    const r = await fetch(`${site}/api/ext?u=${encodeURIComponent(req.url())}`, { headers: { "x-admin": code } });
+    const body = Buffer.from(await r.arrayBuffer());
+    return route.fulfill({ status: r.status, body, headers: { "content-type": r.headers.get("content-type") || "application/json", "access-control-allow-origin": "*" } });
+  } catch (e) { return route.abort(); }
+});
 const page = await ctx.newPage();
 page.on("dialog", (d) => d.accept());
 page.on("pageerror", (e) => console.log("[page error]", String(e).slice(0, 300)));
