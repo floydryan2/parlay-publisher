@@ -45,7 +45,12 @@ await page.goto(`${site}/?bot=${mode}`, { waitUntil: "load" });
 let last = "";
 const t0 = Date.now();
 for (;;) {
-  const st = await page.evaluate(() => ({ bot: window.__bot || null, log: (document.querySelector("#log") || {}).textContent || "", sheet: ((document.querySelector("#sheetBody") || {}).innerText || "").replace(/\s+/g, " ").slice(0, 160) })).catch(() => null);
+  const st = await page.evaluate(() => {
+    const b = (typeof vet !== "undefined" && vet && vet.best) ? vet.best : null;
+    const q = (typeof vet !== "undefined" && vet && vet.q) ? ` · web ${vet.q.i || 0}/${vet.q.n || 0}` : "";
+    const prog = b ? `${b.stage || ""} — ${b.text || ""}${q}` : "";
+    return { bot: window.__bot || null, log: (document.querySelector("#log") || {}).textContent || "", sheet: prog || ((document.querySelector("#sheetBody") || {}).innerText || "").replace(/\s+/g, " ").slice(0, 160) };
+  }).catch(() => null);
   if (st) {
     const line = (st.sheet || st.log).trim();
     if (line && line !== last) { last = line; console.log(`[${Math.round((Date.now() - t0) / 1000)}s] ${line}`); }
