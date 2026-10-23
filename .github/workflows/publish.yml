@@ -2,7 +2,14 @@ name: Publish rankings
 
 on:
   schedule:
-    - cron: "0 11 * * *"
+    # Times are UTC. ET is UTC-4 until Nov 1, then UTC-5.
+    # Full research only on the days that matter (before the games you'd bet on):
+    - cron: "0 11 * * 3"          # Wed 7am ET  - new week's slate
+    - cron: "0 21 * * 4"          # Thu 5pm ET  - done by ~6:30, ahead of the Thursday game
+    - cron: "0 11 * * 6"          # Sat 7am ET  - weekend injuries/roster moves
+    - cron: "0 11 * * 0"          # Sun 7am ET  - before the 1pm games
+    - cron: "0 17 * * 1"          # Mon 1pm ET  - Monday night games only (finished games drop out)
+    # Odds-only refreshes (no AI, keeps the research), four times a day:
     - cron: "0 15,19,23,3 * * *"
   workflow_dispatch:
     inputs:
@@ -31,8 +38,12 @@ jobs:
         id: m
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then echo "mode=${{ inputs.mode }}" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event.schedule }}" = "0 11 * * *" ]; then echo "mode=full" >> $GITHUB_OUTPUT
-          else echo "mode=odds" >> $GITHUB_OUTPUT; fi
+          else
+            case "${{ github.event.schedule }}" in
+              "0 11 * * 3"|"0 21 * * 4"|"0 11 * * 6"|"0 11 * * 0"|"0 17 * * 1") echo "mode=full" >> $GITHUB_OUTPUT ;;
+              *) echo "mode=odds" >> $GITHUB_OUTPUT ;;
+            esac
+          fi
       - name: Publish
         env:
           SITE_URL: ${{ secrets.SITE_URL }}
